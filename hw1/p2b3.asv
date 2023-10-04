@@ -1,0 +1,172 @@
+% BME599 F23 | HW1 P2b(iii)
+% Bloch Equation Simulation, bSSFP sequence
+% -----------------------------------------
+% Robert Jones | 09-24-2023
+%
+% Script for HW1 Problem 2 part b(iii)
+%
+
+clear
+close all
+% clc
+
+%% Set parameters
+
+% Number of spins in single voxel to simulate
+N = 100;
+
+% Flip angle
+alpha = deg2rad(10); %rad
+
+% T1/T2
+T1 = 1000;  % ms
+T2 = 100;   % ms
+
+% TR/TE
+TR = 10;    % ms
+TE = 5;     % ms
+
+% Phase twists to apply to spins
+%  ( total phase twist = 8pi )
+ncycles = 1; % 2*pi rad [e.g., ncycles=4 == 8pi dephasing]
+
+% Set # of RF excitations (kinda like "train length"?)
+Nex = 100;
+% Set # of frequencies
+Nf = 100;
+
+% Off-resonance frequency
+dfreq = 0;
+
+% RF pulse phases to test [every 1degree from 0 to 180 deg]
+thetas = deg2rad(0:1:180);
+
+% To store the signal at each RF pulse phase
+S = zeros(length(thetas),1);
+% To store the signal from each excitation  at each RF pulse phase
+S_AllEx = zeros(length(thetas),Nex);
+% TO store magnetization components  at each RF pulse phase
+MS = zeros(length(thetas),3,Nex);
+
+% Loop through RF pulse phases
+for ind=1:length(thetas)
+    rfphase = thetas(ind);
+%     [Msig,Mss] = gresignal(alpha,T1,T2,TE,TR,dfreq,ncycles,N);
+%     [Msig,Mss] = gssignal_rfspoil(alpha,T1,T2,TE,TR,dfreq,ncycles,rfphase);
+%     [Msig,Mss] = gresignal_rfspoil(alpha,T1,T2,TE,TR,dfreq,ncycles,N,rfphase);
+    [Msig,Mss,Msigs,~]=spgrsignal(alpha,T1,T2,TE,TR,dfreq,Nex,rfphase,Nf,ncycles,0);
+    S(ind) = Msig;
+    S_AllEx(ind,:) = Msigs;
+    MS(ind,:,:) = Mss;
+end
+
+magnSignals = abs(S);
+phaseSignals = angle(S);
+
+
+bestRfPhaseIncInd = find((magnSignals==min(magnSignals)));
+bestRfPhaseIncPhi = thetas(bestRfPhaseIncInd);
+
+
+% Get the "perfect"/target signal from P2b(i) simulation 
+Signals = p2b1();
+idealspsignal = mean(abs(Signals));
+
+% Get the signal from P2b(ii) gradient spoiling simulation
+Signals2 = p2b1_gssignal(0);
+grspsignal = mean(abs(Signals2));
+
+
+fprintf('--------------------\n');
+fprintf('------ P2b(iii) ----\n');
+fprintf('\n');
+
+
+%%% Plot (transverse) signal magnitude
+
+% subplots - signal magnitude vs ideal+gr
+f=figure('color','w','position', [265 442 1136 347]);
+subplot(121);
+hold on;
+plot(rad2deg(thetas),abs(S),'-','LineWidth',2); 
+plot(rad2deg(thetas),repmat(idealspsignal,length(thetas),1),'--m','LineWidth',2);
+plot(rad2deg(thetas),repmat(grspsignal,length(thetas),1),'--r','LineWidth',2);
+xlabel('RF pulse phase increment [deg]');
+ylabel('SS (transverse) signal magnitude');
+legend('Incrementing RF phase','"Perfect" spoiled signal (P2b-i)','Grad spoiled signal (P2b-ii)');
+title('P2b(iii) | Grad+RF spoiled SS simulations');
+set(gca,'FontSize',14);
+subplot(122);
+hold on;
+plot(rad2deg(thetas),abs(S),'-','LineWidth',2,'Marker','o'); 
+plot(rad2deg(thetas),repmat(idealspsignal,length(thetas),1),'--m','LineWidth',2);
+plot(rad2deg(thetas),repmat(grspsignal,length(thetas),1),'--r','LineWidth',2);
+xlabel('RF pulse phase increment [deg]');
+ylabel('SS (transverse) signal magnitude');
+% legend('Incrementing RF phase','"Perfect" spoiled signal (P2b-i)','Grad spoiled signal (P2b-ii)');
+title('P2b(iii) | Grad+RF spoiled SS simulations');
+set(gca,'FontSize',14);
+xlim([110 130]);
+
+fout = 'plots/p2b-iii-SignalMagn-vs-RfPhaseInc+Zoom117deg.png';
+print(f,fout,'-dpng');
+
+
+%%% Subplots - signal magnitude + phase
+f=figure('color','w','position',[851 93 587 660]);
+
+subplot(211);
+hold on;
+plot(rad2deg(thetas),abs(S),'-','LineWidth',2); 
+plot(rad2deg(thetas),repmat(idealspsignal,length(thetas),1),'--m','LineWidth',2);
+plot(rad2deg(thetas),repmat(grspsignal,length(thetas),1),'--r','LineWidth',2);
+xlabel('RF pulse phase increment [deg]');
+ylabel('SS (transverse) signal magnitude');
+legend('Incrementing RF phase','"Perfect" spoiled signal (P2b-i)','Grad spoiled signal (P2b-ii)');
+title('P2b(iii) | Grad+RF spoiled SS simulations');
+set(gca,'FontSize',14);
+
+subplot(212);
+hold on;
+plot(rad2deg(thetas),angle(S),'-','LineWidth',2,'Marker','o'); 
+xlabel('RF pulse phase increment [deg]');
+ylabel('SS (transverse) signal phase');
+set(gca,'FontSize',14);
+
+fout = 'plots/p2b-iii-SignalMagn+Phase-vs-RfPhaseInc.png';
+print(f,fout,'-dpng');
+
+
+f = figure('position',[495 473 954 331],'color','w'); 
+hold on;
+plot(rad2deg(thetas), MS(:,1,end) ,'-o','LineWidth',2,'Marker','o');
+plot(rad2deg(thetas), MS(:,2,end) ,'-o','LineWidth',2,'Marker','o');
+plot(rad2deg(thetas), MS(:,3,end) ,'-o','LineWidth',2,'Marker','o');
+% plot(rad2deg(thetas), abs(MS(:,1,end)+1i*MS(:,2,end)) ,'-o','LineWidth',2,'Marker','o');
+legend('M_x','M_y','M_z'); %,'M_{xy}');
+xlabel('RF pulse phase increment [deg]');
+ylabel('SS residual magnitude');
+title('P2b(iii) | Grad+RF spoiled SS simulations');
+set(gca,'FontSize',14);
+drawnow;shg;
+
+fout = [];
+print(f,fout,'-dpng');
+
+% 
+% f = figure('position',[495 473 954 331],'color','w'); 
+% hold on;
+% plot(rad2deg(thetas(1:10:end)), abs(S_AllEx(1:10:end,:)).' ,'-','LineWidth',2);
+% 
+% plot(rad2deg(thetas), MS(:,2,end) ,'-o','LineWidth',2,'Marker','o');
+% plot(rad2deg(thetas), MS(:,3,end) ,'-o','LineWidth',2,'Marker','o');
+% plot(rad2deg(thetas), abs(MS(:,1,end)+1i*MS(:,2,end)) ,'-o','LineWidth',2,'Marker','o');
+% 
+% xlabel('RF pulse phase (rad)');
+% ylabel('SS residual magnitude');
+% title('P2b(iii) | Grad+RF spoiled SS simulations');
+% 
+% f = figure('position',[495 473 954 331],'color','w'); 
+% plot(rad2deg(thetas(117:119)), abs(S_AllEx(117:119,:)) ,'-','LineWidth',2);
+
+

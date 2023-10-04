@@ -1,0 +1,99 @@
+% BME599 F23 | HW1 P2b(ii)
+% Bloch Equation Simulation, bSSFP sequence
+% -----------------------------------------
+% Robert Jones | 09-24-2023
+%
+% Script for HW1 Problem 2 part b(ii)
+%
+
+clear
+close all
+% clc
+
+%% Set parameters
+
+% Number of spins in single voxel to simulate
+N = 100;
+
+% Flip angle
+alpha = deg2rad(10); %rad
+
+% T1/T2
+T1 = 1000;  % ms
+T2 = 100;   % ms
+
+ % TR/TE
+TR = 10;    % ms
+TE = 5;     % ms
+
+% Phase twists to apply to spins
+%  ( total phase twist = 8pi )
+cycles = [0,1,2,4,8];
+numcycles = length(cycles);
+
+% Sweep off resonance frequencies
+dfreq = 0;
+
+%% Simulate gradient spoiled steady state signal
+
+% To store the signal Magn+Phase from each spin in the voxel
+Signals = zeros(numcycles,1);
+% To stote the magnitization (xyz) components 
+MSignals = zeros(numcycles,3);
+% Loop through # of dephasing cycles
+for cc=1:numcycles
+    ncycles = cycles(cc);
+    [Msig,Mss] = gresignal(alpha,T1,T2,TE,TR,dfreq,ncycles,N);
+    Signals(cc) = Msig;
+    MSignals(cc,:) = Mss;
+end
+% Extract magnitude and phase of ss signals
+magnSignals = abs(Signals);
+phaseSignals = angle(Signals);
+
+
+%% Make plots
+
+% Plot signal magnitude, phase, 
+% - no ylim scaling 
+%   (see very minor differences using )
+f = figure('position',[495 136 535 668],'color','w'); 
+subplot(211);
+plot(cycles(2:end), magnSignals(2:end) ,'-o','LineWidth',2);
+xlabel('Cycles of gradient spoiler dephasing (2\pirad)');
+ylabel('SS signal (magnitude)');
+title(['P2b(ii) | Grad. spoiled SS simulation - N=' num2str(N) ' spins']);
+% ylim([0 0.25]);
+set(gca,'FontSize',13);
+subplot(212);
+plot(cycles(2:end), (phaseSignals(2:end)),'-o','LineWidth',2);
+xlabel('Cycles of gradient spoiler dephasing (2\pirad)');
+ylabel('SS signal (phase)');
+% ylim([-pi pi]);
+% title(['P2b(ii) | Grad. spoiled SS sim, phase']);
+set(gca,'FontSize',13);
+
+fout = ['plots/p2b-ii-SignalMagn+Phase-vs-dephasingCycles.png'];
+print(f,fout,'-dpng');
+
+
+% Plot Mx,My,Mz components, 
+% - no ylim scaling 
+f = figure('position',[894 248 585 430],'color','w'); 
+hold on;
+plot(cycles(2:end), MSignals(2:end,1) ,'-o','LineWidth',2);
+plot(cycles(2:end), MSignals(2:end,2) ,'-o','LineWidth',2);
+plot(cycles(2:end), MSignals(2:end,3) ,'-o','LineWidth',2);
+lgn=legend({'M_x','M_y','M_z'});
+xlabel('Cycles of gradient spoiler dephasing (2\pirad)');
+ylabel('SS residual magnitude');
+title(['P2b(ii) | Grad. spoiled SS simulation - N=' num2str(N) ' spins']);
+% ylim([0 0.25]);
+set(gca,'FontSize',13);
+
+fout = ['plots/p2b-ii-Mxyz-vs-dephasingCycles+With-0-Dephasing.png'];
+print(f,fout,'-dpng');
+
+
+
+
