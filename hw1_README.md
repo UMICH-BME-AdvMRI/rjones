@@ -2,6 +2,11 @@
 
 Matlab code and formal/written report for HW1 can be found in /hw1.
 
+## Reference for Bloch Equation Simulation code
+Many of the Bloch Sim matlab functions (located in /hw1/utils) were downloaded from Brian Hargreaves' Bloch Equation Simulation webpage (http://mrsrl.stanford.edu/~brian/bloch/). The Matlab functions downloaded from this webpage have a note in the function header and a link to the webpage. 
+
+The scripts used to run each problem/part/subpart were made by me, but they are largely just wrappers that call the functions downloaded from the Bloch Equation Simulation webpage. 
+
 ## Report
 The written responses to problems can be found in /hw1/hw1-report. The directory contains 2 PDF files, one with responses to problems 1 and 2, and the other with responses for problem 3.
 
